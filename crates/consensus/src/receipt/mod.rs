@@ -1,5 +1,8 @@
 use alloy_primitives::{Bloom, Log};
 
+mod any;
+pub use any::AnyReceiptEnvelope;
+
 mod envelope;
 pub use envelope::ReceiptEnvelope;
 
@@ -7,9 +10,9 @@ mod receipts;
 pub use receipts::{Receipt, ReceiptWithBloom};
 
 /// Receipt is the result of a transaction execution.
-pub trait TxReceipt {
+pub trait TxReceipt<T = Log> {
     /// Returns true if the transaction was successful.
-    fn success(&self) -> bool;
+    fn status(&self) -> bool;
 
     /// Returns the bloom filter for the logs in the receipt. This operation
     /// may be expensive.
@@ -22,10 +25,10 @@ pub trait TxReceipt {
     }
 
     /// Returns the cumulative gas used in the block after this transaction was executed.
-    fn cumulative_gas_used(&self) -> u64;
+    fn cumulative_gas_used(&self) -> u128;
 
     /// Returns the logs emitted by this transaction.
-    fn logs(&self) -> &[Log];
+    fn logs(&self) -> &[T];
 }
 
 #[cfg(test)]
@@ -44,7 +47,7 @@ mod tests {
         let receipt =
             ReceiptEnvelope::Legacy(ReceiptWithBloom {
                 receipt: Receipt {
-                    cumulative_gas_used: 0x1u64,
+                    cumulative_gas_used: 0x1u128,
                     logs: vec![Log {
                         address: address!("0000000000000000000000000000000000000011"),
                         data: LogData::new_unchecked(
@@ -76,7 +79,7 @@ mod tests {
         let expected =
             ReceiptWithBloom {
                 receipt: Receipt {
-                    cumulative_gas_used: 0x1u64,
+                    cumulative_gas_used: 0x1u128,
                     logs: vec![Log {
                         address: address!("0000000000000000000000000000000000000011"),
                         data: LogData::new_unchecked(

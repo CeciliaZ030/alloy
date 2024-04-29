@@ -12,16 +12,16 @@ repository.workspace = true
 exclude.workspace = true
 
 [dependencies]
-alloy-consensus.workspace = true
+alloy-consensus = { workspace = true, features = ["std"] }
 alloy-eips = { workspace = true, features = ["serde"] }
 alloy-json-rpc.workspace = true
 alloy-primitives.workspace = true
 alloy-rpc-types.workspace = true
 alloy-signer.workspace = true
+alloy-sol-types.workspace = true
 
 async-trait.workspace = true
 futures-utils-wasm.workspace = true
-serde = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 
 [dev-dependencies]

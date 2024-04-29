@@ -20,36 +20,35 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
+use alloc::{collections::BTreeMap, string::String};
 
 use alloy_primitives::{Address, Bytes, B256, U256};
 use alloy_serde::{
-    json_u256::{deserialize_json_ttd_opt, deserialize_json_u256},
-    num::{u64_hex_or_decimal, u64_hex_or_decimal_opt},
+    num::{u128_opt_via_ruint, u128_via_ruint, u64_opt_via_ruint, u64_via_ruint},
     storage::deserialize_storage_map,
+    ttd::deserialize_json_ttd_opt,
 };
 use serde::{Deserialize, Serialize};
 
 /// The genesis block specification.
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Genesis {
     /// The fork configuration for this network.
     #[serde(default)]
     pub config: ChainConfig,
     /// The genesis header nonce.
-    #[serde(with = "u64_hex_or_decimal")]
+    #[serde(with = "u64_via_ruint")]
     pub nonce: u64,
     /// The genesis header timestamp.
-    #[serde(with = "u64_hex_or_decimal")]
+    #[serde(with = "u64_via_ruint")]
     pub timestamp: u64,
     /// The genesis header extra data.
     pub extra_data: Bytes,
     /// The genesis header gas limit.
-    #[serde(with = "u64_hex_or_decimal")]
-    pub gas_limit: u64,
+    #[serde(with = "u128_via_ruint")]
+    pub gas_limit: u128,
     /// The genesis header difficulty.
-    #[serde(deserialize_with = "deserialize_json_u256")]
     pub difficulty: U256,
     /// The genesis header mix hash.
     pub mix_hash: B256,
@@ -65,16 +64,16 @@ pub struct Genesis {
     // should NOT be set in a real genesis file, but are included here for compatibility with
     // consensus tests, which have genesis files with these fields populated.
     /// The genesis header base fee
-    #[serde(skip_serializing_if = "Option::is_none", with = "u64_hex_or_decimal_opt")]
-    pub base_fee_per_gas: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "u128_opt_via_ruint")]
+    pub base_fee_per_gas: Option<u128>,
     /// The genesis header excess blob gas
-    #[serde(skip_serializing_if = "Option::is_none", with = "u64_hex_or_decimal_opt")]
-    pub excess_blob_gas: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "u128_opt_via_ruint")]
+    pub excess_blob_gas: Option<u128>,
     /// The genesis header blob gas used
-    #[serde(skip_serializing_if = "Option::is_none", with = "u64_hex_or_decimal_opt")]
-    pub blob_gas_used: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "u128_opt_via_ruint")]
+    pub blob_gas_used: Option<u128>,
     /// The genesis block number
-    #[serde(skip_serializing_if = "Option::is_none", with = "u64_hex_or_decimal_opt")]
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "u64_opt_via_ruint")]
     pub number: Option<u64>,
 }
 
@@ -159,7 +158,7 @@ impl Genesis {
     }
 
     /// Set the gas limit.
-    pub const fn with_gas_limit(mut self, gas_limit: u64) -> Self {
+    pub const fn with_gas_limit(mut self, gas_limit: u128) -> Self {
         self.gas_limit = gas_limit;
         self
     }
@@ -183,19 +182,19 @@ impl Genesis {
     }
 
     /// Set the base fee.
-    pub const fn with_base_fee(mut self, base_fee: Option<u64>) -> Self {
+    pub const fn with_base_fee(mut self, base_fee: Option<u128>) -> Self {
         self.base_fee_per_gas = base_fee;
         self
     }
 
     /// Set the excess blob gas.
-    pub const fn with_excess_blob_gas(mut self, excess_blob_gas: Option<u64>) -> Self {
+    pub const fn with_excess_blob_gas(mut self, excess_blob_gas: Option<u128>) -> Self {
         self.excess_blob_gas = excess_blob_gas;
         self
     }
 
     /// Set the blob gas used.
-    pub const fn with_blob_gas_used(mut self, blob_gas_used: Option<u64>) -> Self {
+    pub const fn with_blob_gas_used(mut self, blob_gas_used: Option<u128>) -> Self {
         self.blob_gas_used = blob_gas_used;
         self
     }
@@ -212,14 +211,13 @@ impl Genesis {
 }
 
 /// An account in the state of the genesis block.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GenesisAccount {
     /// The nonce of the account at genesis.
-    #[serde(skip_serializing_if = "Option::is_none", with = "u64_hex_or_decimal_opt", default)]
+    #[serde(skip_serializing_if = "Option::is_none", with = "u64_opt_via_ruint", default)]
     pub nonce: Option<u64>,
     /// The balance of the account at genesis.
-    #[serde(deserialize_with = "deserialize_json_u256")]
     pub balance: U256,
     /// The account's bytecode at genesis.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -273,7 +271,7 @@ impl GenesisAccount {
 /// See [geth's `ChainConfig`
 /// struct](https://github.com/ethereum/go-ethereum/blob/64dccf7aa411c5c7cd36090c3d9b9892945ae813/params/config.go#L349)
 /// for the source of each field.
-#[derive(Clone, Debug, Deserialize, Serialize, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct ChainConfig {
     /// The network's chain ID.
@@ -283,14 +281,14 @@ pub struct ChainConfig {
     /// The homestead switch block (None = no fork, 0 = already homestead).
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub homestead_block: Option<u64>,
 
     /// The DAO fork switch block (None = no fork).
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub dao_fork_block: Option<u64>,
 
@@ -300,7 +298,7 @@ pub struct ChainConfig {
     /// The [EIP-150](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-150.md) hard fork block (None = no fork).
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub eip150_block: Option<u64>,
 
@@ -311,98 +309,98 @@ pub struct ChainConfig {
     /// The [EIP-155](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md) hard fork block.
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub eip155_block: Option<u64>,
 
     /// The [EIP-158](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-158.md) hard fork block.
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub eip158_block: Option<u64>,
 
     /// The Byzantium hard fork block (None = no fork, 0 = already on byzantium).
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub byzantium_block: Option<u64>,
 
     /// The Constantinople hard fork block (None = no fork, 0 = already on constantinople).
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub constantinople_block: Option<u64>,
 
     /// The Petersburg hard fork block (None = no fork, 0 = already on petersburg).
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub petersburg_block: Option<u64>,
 
     /// The Istanbul hard fork block (None = no fork, 0 = already on istanbul).
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub istanbul_block: Option<u64>,
 
     /// The Muir Glacier hard fork block (None = no fork, 0 = already on muir glacier).
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub muir_glacier_block: Option<u64>,
 
     /// The Berlin hard fork block (None = no fork, 0 = already on berlin).
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub berlin_block: Option<u64>,
 
     /// The London hard fork block (None = no fork, 0 = already on london).
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub london_block: Option<u64>,
 
     /// The Arrow Glacier hard fork block (None = no fork, 0 = already on arrow glacier).
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub arrow_glacier_block: Option<u64>,
 
     /// The Gray Glacier hard fork block (None = no fork, 0 = already on gray glacier).
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub gray_glacier_block: Option<u64>,
 
     /// Virtual fork after the merge to use as a network splitter.
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub merge_netsplit_block: Option<u64>,
 
     /// Shanghai switch time (None = no fork, 0 = already on shanghai).
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub shanghai_time: Option<u64>,
 
     /// Cancun switch time (None = no fork, 0 = already on cancun).
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "u64_hex_or_decimal_opt::deserialize"
+        deserialize_with = "u64_opt_via_ruint::deserialize"
     )]
     pub cancun_time: Option<u64>,
 
@@ -424,6 +422,10 @@ pub struct ChainConfig {
     /// Clique parameters.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub clique: Option<CliqueConfig>,
+
+    /// Additional fields specific to each chain.
+    #[serde(flatten, default)]
+    pub extra_fields: BTreeMap<String, serde_json::Value>,
 }
 
 impl ChainConfig {
@@ -524,11 +526,11 @@ const fn mainnet_id() -> u64 {
 }
 
 /// Empty consensus configuration for proof-of-work networks.
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EthashConfig {}
 
 /// Consensus configuration for Clique.
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CliqueConfig {
     /// Number of seconds between blocks to enforce.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1305,5 +1307,32 @@ mod tests {
         let s = serde_json::to_string_pretty(&gen).unwrap();
         let gen2 = serde_json::from_str::<Genesis>(&s).unwrap();
         assert_eq!(gen, gen2);
+    }
+
+    #[test]
+    fn parse_extra_fields() {
+        let geth_genesis = r#"
+    {
+        "difficulty": "0x20000",
+        "gasLimit": "0x1",
+        "alloc": {},
+        "config": {
+          "ethash": {},
+          "chainId": 1,
+          "string_field": "string_value",
+          "numeric_field": 7,
+          "object_field": {
+            "sub_field": "sub_value"
+          }
+        }
+    }
+    "#;
+        let genesis: Genesis = serde_json::from_str(geth_genesis).unwrap();
+        let actual_string_value = genesis.config.extra_fields.get("string_field").unwrap();
+        assert_eq!(actual_string_value, "string_value");
+        let actual_numeric_value = genesis.config.extra_fields.get("numeric_field").unwrap();
+        assert_eq!(actual_numeric_value, 7);
+        let actual_object_value = genesis.config.extra_fields.get("object_field").unwrap();
+        assert_eq!(actual_object_value, &serde_json::json!({"sub_field": "sub_value"}));
     }
 }
