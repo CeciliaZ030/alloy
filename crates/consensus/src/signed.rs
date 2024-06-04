@@ -51,6 +51,7 @@ impl<T: SignableTransaction<Sig>, Sig> Signed<T, Sig> {
     }
 }
 
+
 #[cfg(feature = "k256")]
 impl<T: SignableTransaction<Signature>> Signed<T, Signature> {
     /// Recover the signer of the transaction
@@ -58,6 +59,9 @@ impl<T: SignableTransaction<Signature>> Signed<T, Signature> {
         &self,
     ) -> Result<alloy_primitives::Address, alloy_primitives::SignatureError> {
         let sighash = self.tx.signature_hash();
-        self.signature.recover_address_from_prehash(&sighash)
+        println!("cycle-tracker-start: recover_address_from_prehash");
+        let res = self.signature.recover_address_from_prehash(&sighash);
+        println!("cycle-tracker-end: recover_address_from_prehash");
+        res
     }
 }
