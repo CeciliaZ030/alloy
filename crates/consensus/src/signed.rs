@@ -59,8 +59,10 @@ impl<T: SignableTransaction<Signature>> Signed<T, Signature> {
         &self,
     ) -> Result<alloy_primitives::Address, alloy_primitives::SignatureError> {
         let sighash = self.tx.signature_hash();
+        #[cfg(feature = "sp1-cycle-tracker")]
         println!("cycle-tracker-start: recover_address_from_prehash");
         let res = self.signature.recover_address_from_prehash(&sighash);
+        #[cfg(feature = "sp1-cycle-tracker")]
         println!("cycle-tracker-end: recover_address_from_prehash");
         res
     }

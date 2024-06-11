@@ -181,3 +181,4 @@ eip712 = [
     # TODO: https://github.com/alloy-rs/alloy/issues/201
     # "alloy-signer-trezor?/eip712",
 ]
+sp1-cycle-tracker = ["alloy-consensus?/sp1-cycle-tracker"]

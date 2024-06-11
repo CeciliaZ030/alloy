@@ -98,8 +98,10 @@ pub trait SignableTransaction<Signature>: Transaction {
 
     /// Calculate the signing hash for the transaction.
     fn signature_hash(&self) -> B256 {
+        #[cfg(feature = "sp1-cycle-tracker")]
         println!("cycle-tracker-start: signature_hash");
         let res = keccak256(self.encoded_for_signing());
+        #[cfg(feature = "sp1-cycle-tracker")]
         println!("cycle-tracker-end: signature_hash");
         res
     }
